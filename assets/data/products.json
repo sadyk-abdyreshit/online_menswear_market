@@ -1,0 +1,101 @@
+[
+  {
+    "id": 1786513848236,
+    "name": "Navy Cashmere Blazer",
+    "category": "tailoring",
+    "price": 399,
+    "tag": "New",
+    "images": [
+      "assets/images/tailoring/thumb-9-1.webp",
+      "assets/images/tailoring/thumb-9-2.webp"
+    ]
+  },
+  {
+    "id": 1,
+    "name": "Heavyweight Cotton Oxford Shirt",
+    "category": "tailoring",
+    "price": 125,
+    "tag": "New",
+    "images": [
+      "assets/images/tailoring/thumb-1-1.webp",
+      "assets/images/tailoring/thumb-1-2.webp"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Structured Wool Overcoat",
+    "category": "outerwear",
+    "price": 380,
+    "tag": "Limited",
+    "images": [
+      "assets/images/outerwear/thumb-2-1.webp",
+      "assets/images/outerwear/thumb-2-2.webp"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Merino Wool Rollneck Sweater",
+    "category": "knitwear",
+    "price": 145,
+    "tag": "Best Seller",
+    "images": [
+      "assets/images/knitwear/thumb-3-1.webp",
+      "assets/images/knitwear/thumb-3-2.webp"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Handcrafted Suede Loafers",
+    "category": "footwear",
+    "price": 260,
+    "tag": "Classic",
+    "images": [
+      "assets/images/footwear/thumb-4-1.webp",
+      "assets/images/footwear/thumb-4-2.webp"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Pleated Wool Trousers",
+    "category": "tailoring",
+    "price": 180,
+    "tag": "",
+    "images": [
+      "assets/images/tailoring/thumb-5-1.webp",
+      "assets/images/tailoring/thumb-5-2.webp"
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Minimalist Leather Belt",
+    "category": "accessories",
+    "price": 85,
+    "tag": "",
+    "images": [
+      "assets/images/accessories/thumb-6-1.webp",
+      "assets/images/accessories/thumb-6-2.webp"
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Waxed Cotton Field Jacket",
+    "category": "outerwear",
+    "price": 320,
+    "tag": "New",
+    "images": [
+      "assets/images/outerwear/thumb-7-1.webp",
+      "assets/images/outerwear/thumb-7-2.webp"
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Cashmere Blend Cardigan",
+    "category": "knitwear",
+    "price": 210,
+    "tag": "",
+    "images": [
+      "assets/images/knitwear/thumb-8-1.webp",
+      "assets/images/knitwear/thumb-8-2.webp"
+    ]
+  }
+]

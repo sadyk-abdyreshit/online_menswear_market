@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — FORME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .admin-container {
+    max-width: 700px;
+    margin: 60px auto;
+    padding: 40px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+  .success-msg {
+    margin-top: 15px;
+    font-size: 13.5px;
+    color: var(--accent);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-row">
+    <a href="index.html" class="logo">FORME</a>
+    <span style="font-size: 13px; color: var(--ink-soft);">Admin Panel</span>
+  </div>
+</header>
+
+<main class="admin-container">
+  <div class="admin-header">
+    <h2>Add New Product</h2>
+    <a href="index.html" class="btn btn-ghost" style="padding: 8px 16px; font-size: 12px;">View Store ↗</a>
+  </div>
+
+<form id="addProductForm" enctype="multipart/form-data">
+    <div class="form-group">
+      <label for="productName">Product Name</label>
+      <input type="text" id="productName" placeholder="e.g., Tailored Cashmere Blazer" required>
+    </div>
+
+    <div class="form-group">
+      <label for="productCategory">Category</label>
+      <select id="productCategory" name="category" required>
+        <option value="outerwear">Outerwear</option>
+        <option value="tailoring">Tailoring</option>
+        <option value="knitwear">Knitwear</option>
+        <option value="footwear">Footwear</option>
+        <option value="accessories">Accessories</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="productPrice">Price ($)</label>
+      <input type="number" id="productPrice" placeholder="250" required min="1">
+    </div>
+
+    <div class="form-group">
+      <label for="productTag">Tag (Optional)</label>
+      <input type="text" id="productTag" placeholder="e.g., New, Limited">
+    </div>
+
+    <div class="form-group">
+      <label for="image1">Primary Image File</label>
+      <input type="file" id="image1" accept="image/*" required>
+    </div>
+
+    <div class="form-group">
+      <label for="image2">Hover Image File (Optional)</label>
+      <input type="file" id="image2" accept="image/*">
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full">Publish Product to Store</button>
+    <p class="success-msg" id="successMsg"></p>
+  </form>
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>
