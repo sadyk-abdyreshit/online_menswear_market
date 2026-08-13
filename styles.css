@@ -91,22 +91,22 @@ input:focus-visible{
   outline-offset: 2px;
 }
 
-/* ===================== HEADER ===================== */
-.site-header{
+/* ===================== HEADER & ACTIONS FIX ===================== */
+.site-header {
   position: sticky;
   top: 0;
-  z-index: 50;
-  background: rgba(251,250,247,0.92);
-  backdrop-filter: blur(8px);
+  z-index: 100;
+  background: var(--white);
   border-bottom: 1px solid var(--line);
+  padding: 16px 40px;
 }
-.header-row{
-  max-width: var(--container);
+
+.header-row {
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 18px 32px;
-  display:flex;
-  align-items:center;
-  gap: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Keeps logo left, nav middle, icons right */
 }
 .logo{
   font-family: var(--font-display);
@@ -115,23 +115,32 @@ input:focus-visible{
   font-weight: 600;
   margin-right: 8px;
 }
-.main-nav{
-  display:flex;
-  gap: 28px;
-  flex: 1;
+.main-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
   font-size: 13.5px;
+  /* Removes flex-grow so it centers cleanly in the space between logo & actions */
+  flex: initial; 
 }
-.main-nav a{
+
+.main-nav a {
   color: var(--ink-soft);
+  text-decoration: none;
   transition: color .2s ease;
 }
-.main-nav a:hover{ color: var(--ink); }
 
-.header-actions{
-  display:flex;
-  align-items:center;
-  gap: 6px;
+.main-nav a:hover {
+  color: var(--ink);
 }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .basket-btn{ position: relative; }
 .basket-count{
   position:absolute;
@@ -593,3 +602,5 @@ input:focus-visible{
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; scroll-behavior: auto !important; }
 }
+
+

@@ -1,32 +1,33 @@
+require('dotenv').config();
 const express = require('express');
-const fs = require('fs');
+const mongoose = require('mongoose');
 const path = require('path');
-const cors = require('cors');
+const fs = require('fs');
 const multer = require('multer');
+const Product = require('./models/Product');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
 
-// Serve static files from your project root
-app.use(express.static(path.join(__dirname)));
+// Connect to local MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✓ Successfully connected to MongoDB'))
+  .catch((err) => console.error('✕ MongoDB connection error:', err));
 
 // Configure Multer storage to route images to the correct category folder
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // Get category from the form submission data
         const category = req.body.category || 'general';
         const uploadDir = path.join(__dirname, 'assets', 'images', category);
 
-        // Ensure the folder exists, create it if it doesn't
+        // Ensure directory exists
         fs.mkdirSync(uploadDir, { recursive: true });
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        // Create a clean, unique file name using current timestamp and original name
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
         cb(null, uniqueSuffix + ext);
@@ -35,16 +36,40 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// API Endpoint to receive product details + uploaded image files
+// ===================== API ROUTES =====================
+
+// 1. GET ALL PRODUCTS FROM MONGODB
+app.get('/api/products', async (req, res) => {
+    try {
+        const products = await Product.find().sort({ createdAt: -1 });
+        res.json(products);
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({ error: 'Failed to fetch products from database.' });
+    }
+});
+
+// 2. CREATE NEW PRODUCT IN MONGODB
 app.post('/api/products', upload.fields([
     { name: 'image1', maxCount: 1 },
     { name: 'image2', maxCount: 1 }
-]), (req, res) => {
+]), async (req, res) => {
+    console.log("RECEIVED BODY:", req.body);
     try {
-        const { name, category, price, tag } = req.body;
-        const images = [];
+        const { name, category, price, tag, description } = req.body;
+        
+        let parsedSizes = [];
+        try {
+            parsedSizes = JSON.parse(req.body.sizes || '[]');
+        } catch (e) {
+            parsedSizes = ['S', 'M', 'L', 'XL'];
+        }
 
-        // If files were uploaded, build their relative paths for the frontend
+        if (parsedSizes.length === 0) {
+            parsedSizes = ['S', 'M', 'L', 'XL'];
+        }
+
+        const images = [];
         if (req.files) {
             if (req.files['image1']) {
                 const file1 = req.files['image1'][0];
@@ -56,44 +81,48 @@ app.post('/api/products', upload.fields([
             }
         }
 
-        const newProduct = {
-            id: Date.now(),
+        // Build size & inventory matrix
+        const inventory = parsedSizes.map(sz => ({
+            size: String(sz).trim(),
+            stock: 10 // Default stock per size
+        }));
+
+        const newProduct = new Product({
             name,
-            category,
+            category: category ? category.toLowerCase() : 'general',
             price: Number(price),
             tag: tag || '',
-            images
-        };
-
-        const filePath = path.join(__dirname, 'assets', 'data', 'products.json');
-
-        // Read and update products.json
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            let products = [];
-            if (!err && data) {
-                try {
-                    products = JSON.parse(data);
-                } catch (e) {
-                    products = [];
-                }
-            }
-
-            products.unshift(newProduct);
-
-            fs.writeFile(filePath, JSON.stringify(products, null, 2), (writeErr) => {
-                if (writeErr) {
-                    return res.status(500).json({ error: 'Failed to save product file.' });
-                }
-                res.json({ success: true, message: 'Product and images uploaded successfully!' });
-            });
+            description: description || '',
+            images,
+            inventory
         });
+
+        await newProduct.save();
+        res.json({ success: true, message: 'Product saved successfully to MongoDB!', product: newProduct });
 
     } catch (error) {
         console.error("Upload error:", error);
-        res.status(500).json({ error: 'Internal server error during upload.' });
+        res.status(500).json({ error: 'Internal server error during product save.' });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+// 3. DELETE PRODUCT FROM MONGODB BY ID
+app.delete('/api/products/:id', async (req, res) => {
+    try {
+        const productId = req.params.id;
+        const deletedProduct = await Product.findByIdAndDelete(productId);
+
+        if (!deletedProduct) {
+            return res.status(404).json({ error: 'Product not found.' });
+        }
+
+        res.json({ success: true, message: 'Product deleted from MongoDB.' });
+    } catch (error) {
+        console.error("Delete error:", error);
+        res.status(500).json({ error: 'Failed to delete product.' });
+    }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });

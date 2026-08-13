@@ -1,24 +1,46 @@
 [
   {
-    "id": 1786513848236,
-    "name": "Navy Cashmere Blazer",
-    "category": "tailoring",
-    "price": 399,
-    "tag": "New",
+    "id": 1786614651418,
+    "name": "Minimalist Leather Belt",
+    "category": "accessories",
+    "price": 75,
+    "tag": "",
+    "description": "Crafted by Abdyreshit",
+    "sizes": [
+      "Black"
+    ],
     "images": [
-      "assets/images/tailoring/thumb-9-1.webp",
-      "assets/images/tailoring/thumb-9-2.webp"
+      "assets/images/accessories/1786614651378-650222355.webp",
+      "assets/images/accessories/1786614651379-770415262.webp"
     ]
   },
-  {
-    "id": 1,
+    {
+    "id": 1786604300271,
     "name": "Heavyweight Cotton Oxford Shirt",
     "category": "tailoring",
     "price": 125,
     "tag": "New",
     "images": [
-      "assets/images/tailoring/thumb-1-1.webp",
-      "assets/images/tailoring/thumb-1-2.webp"
+      "assets/images/tailoring/1786604300267-24728646.webp",
+      "assets/images/tailoring/1786604300268-963074264.webp"
+    ]
+  },
+  {
+    "id": 1786513848236,
+    "name": "Navy Cashmere Blazer",
+    "category": "tailoring",
+    "price": 399,
+    "tag": "New",
+    "description": "Woven from 100% Mongolian cashmere featuring soft unstructured shoulders and horn buttons.",
+    "sizes": [
+      "36R",
+      "38R",
+      "40R",
+      "42R"
+    ],
+    "images": [
+      "assets/images/tailoring/thumb-9-1.webp",
+      "assets/images/tailoring/thumb-9-2.webp"
     ]
   },
   {
@@ -63,17 +85,6 @@
     "images": [
       "assets/images/tailoring/thumb-5-1.webp",
       "assets/images/tailoring/thumb-5-2.webp"
-    ]
-  },
-  {
-    "id": 6,
-    "name": "Minimalist Leather Belt",
-    "category": "accessories",
-    "price": 85,
-    "tag": "",
-    "images": [
-      "assets/images/accessories/thumb-6-1.webp",
-      "assets/images/accessories/thumb-6-2.webp"
     ]
   },
   {

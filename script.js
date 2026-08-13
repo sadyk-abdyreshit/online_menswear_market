@@ -2,28 +2,19 @@
 let products = [];
 
 // Fetch default products and merge them with admin-created items from localStorage
+// Fetch products directly from MongoDB via Express API
 async function loadProducts() {
   try {
-    const response = await fetch('assets/data/products.json');
-    const defaultProducts = await response.json();
-    
-    // Get custom products added from the admin panel
-    const customProducts = JSON.parse(localStorage.getItem("custom_products")) || [];
-    
-    // Combine both arrays (custom products appear first, followed by defaults)
-    products = [...customProducts, ...defaultProducts];
-    
+    const response = await fetch('/api/products');
+    products = await response.json();
     renderProducts();
   } catch (error) {
-    console.error("Error loading products:", error);
-    // Fallback: If fetch fails, at least load custom products from localStorage
-    products = JSON.parse(localStorage.getItem("custom_products")) || [];
-    renderProducts();
+    console.error("Error loading products from database:", error);
   }
 }
 
-// ===================== STATE =====================
-let cart = [];
+// ===================== STATE (SYNCED WITH LOCALSTORAGE) =====================
+let cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
 
 // ===================== DOM ELEMENTS =====================
 const productGrid = document.getElementById("productGrid");
@@ -50,6 +41,7 @@ const closeProfile = document.getElementById("closeProfile");
 
 // ===================== RENDER PRODUCTS =====================
 function renderProducts(filter = "all") {
+  if (!productGrid) return;
   productGrid.innerHTML = "";
   
   const filtered = filter === "all" 
@@ -77,13 +69,15 @@ function renderProducts(filter = "all") {
     const hoverImg = imgList.length > 1 ? imgList[1] : primaryImg;
 
     card.innerHTML = `
-      <div class="product-image">
-        ${product.tag ? `<span class="product-tag">${product.tag}</span>` : ""}
-        ${primaryImg ? `<img src="${primaryImg}" alt="${product.name}" class="main-img" loading="lazy">` : ""}
-        ${imgList.length > 1 ? `<img src="${hoverImg}" alt="${product.name}" class="hover-img" loading="lazy">` : ""}
-      </div>
-      <h3 class="product-name">${product.name}</h3>
-      <p class="product-price">$${product.price}</p>
+      <a href="pages/product.html?id=${product.id}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="product-image">
+          ${product.tag ? `<span class="product-tag">${product.tag}</span>` : ""}
+          ${primaryImg ? `<img src="${primaryImg}" alt="${product.name}" class="main-img" loading="lazy">` : ""}
+          ${imgList.length > 1 ? `<img src="${hoverImg}" alt="${product.name}" class="hover-img" loading="lazy">` : ""}
+        </div>
+        <h3 class="product-name">${product.name}</h3>
+        <p class="product-price">$${product.price}</p>
+      </a>
       <button class="add-btn" onclick="addToCart(${product.id})">Add to Bag</button>
     `;
     productGrid.appendChild(card);
@@ -91,39 +85,65 @@ function renderProducts(filter = "all") {
 }
 
 // ===================== FILTER CHIPS =====================
-filterRow.addEventListener("click", (e) => {
-  if (!e.target.classList.contains("filter-chip")) return;
-  
-  document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
-  e.target.classList.add("active");
-  
-  renderProducts(e.target.dataset.filter);
-});
+if (filterRow) {
+  filterRow.addEventListener("click", (e) => {
+    if (!e.target.classList.contains("filter-chip")) return;
+    
+    document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+    e.target.classList.add("active");
+    
+    renderProducts(e.target.dataset.filter);
+  });
+}
 
-// ===================== CART LOGIC =====================
-window.addToCart = function(id) {
+// ===================== CART LOGIC & STORAGE SYNCRONIZATION =====================
+window.addToCart = function(id, defaultSize = "M") {
   const product = products.find(p => p.id === id);
-  const existing = cart.find(item => item.id === id);
+  if (!product) return;
+
+  const cartItemId = `${product.id}-${defaultSize}`;
+  const existing = cart.find(item => item.cartId === cartItemId);
   
+  let thumbImg = "";
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    thumbImg = product.images[0];
+  } else if (product.image) {
+    thumbImg = product.image;
+  }
+
   if (existing) {
     existing.qty += 1;
   } else {
-    cart.push({ ...product, qty: 1 });
+    cart.push({
+      cartId: cartItemId,
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      size: defaultSize,
+      image: thumbImg,
+      qty: 1
+    });
   }
+  
+  // Persist to localStorage
+  localStorage.setItem("forme_cart", JSON.stringify(cart));
   
   updateCartUI();
   openDrawer(basketDrawer, drawerOverlay);
 };
 
-function removeFromCart(id) {
-  cart = cart.filter(item => item.id !== id);
+window.removeFromCart = function(cartId) {
+  cart = cart.filter(item => item.cartId !== cartId && item.id !== cartId);
+  localStorage.setItem("forme_cart", JSON.stringify(cart));
   updateCartUI();
-}
+};
 
 function updateCartUI() {
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  basketCount.textContent = totalItems;
+  if (basketCount) basketCount.textContent = totalItems;
   
+  if (!drawerItems || !drawerTotal) return;
+
   if (cart.length === 0) {
     drawerItems.innerHTML = `<p class="drawer-empty" id="drawerEmpty">Your basket is empty.</p>`;
     drawerTotal.textContent = "$0";
@@ -137,22 +157,16 @@ function updateCartUI() {
     subtotal += item.price * item.qty;
     const itemEl = document.createElement("div");
     itemEl.className = "drawer-item";
-    
-    let thumbImg = "";
-    if (Array.isArray(item.images) && item.images.length > 0) {
-      thumbImg = item.images[0];
-    } else if (item.image) {
-      thumbImg = item.image;
-    }
 
     itemEl.innerHTML = `
       <div class="drawer-item-thumb" style="background: var(--bg-alt); overflow:hidden;">
-        ${thumbImg ? `<img src="${thumbImg}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
+        ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
       </div>
       <div class="drawer-item-info">
-        <span class="name">${item.name} (x${item.qty})</span>
-        <span class="price">$${item.price * item.qty}</span>
-        <button class="drawer-item-remove" onclick="removeFromCart(${item.id})">Remove</button>
+        <span class="name">${item.name}</span>
+        <span class="price">${item.size ? `Size: ${item.size} | ` : ""}Qty: ${item.qty}</span>
+        <span class="price" style="font-weight:600; color:var(--ink);">$${item.price * item.qty}</span>
+        <button class="drawer-item-remove" onclick="removeFromCart('${item.cartId || item.id}')">Remove</button>
       </div>
     `;
     drawerItems.appendChild(itemEl);
@@ -161,29 +175,36 @@ function updateCartUI() {
   drawerTotal.textContent = `$${subtotal}`;
 }
 
+// Auto-sync cart when navigating back to homepage from product pages
+window.addEventListener("pageshow", () => {
+  cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
+  updateCartUI();
+});
+
 // ===================== UI INTERACTION HANDLERS =====================
 function openDrawer(drawer, overlay) {
-  drawer.classList.add("open");
-  overlay.classList.add("open");
+  if (drawer) drawer.classList.add("open");
+  if (overlay) overlay.classList.add("open");
 }
 
 function closeDrawers() {
-  basketDrawer.classList.remove("open");
-  profileDrawer.classList.remove("open");
-  drawerOverlay.classList.remove("open");
-  profileOverlay.classList.remove("open");
+  if (basketDrawer) basketDrawer.classList.remove("open");
+  if (profileDrawer) profileDrawer.classList.remove("open");
+  if (drawerOverlay) drawerOverlay.classList.remove("open");
+  if (profileOverlay) profileOverlay.classList.remove("open");
 }
 
-searchToggle.addEventListener("click", () => searchBar.classList.toggle("open"));
-closeSearch.addEventListener("click", () => searchBar.classList.remove("open"));
+if (searchToggle && searchBar) searchToggle.addEventListener("click", () => searchBar.classList.toggle("open"));
+if (closeSearch && searchBar) closeSearch.addEventListener("click", () => searchBar.classList.remove("open"));
 
-basketBtn.addEventListener("click", () => openDrawer(basketDrawer, drawerOverlay));
-closeBasket.addEventListener("click", closeDrawers);
-drawerOverlay.addEventListener("click", closeDrawers);
+if (basketBtn) basketBtn.addEventListener("click", () => openDrawer(basketDrawer, drawerOverlay));
+if (closeBasket) closeBasket.addEventListener("click", closeDrawers);
+if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
 
-profileBtn.addEventListener("click", () => openDrawer(profileDrawer, profileOverlay));
-closeProfile.addEventListener("click", closeDrawers);
-profileOverlay.addEventListener("click", closeDrawers);
+if (profileBtn) profileBtn.addEventListener("click", () => openDrawer(profileDrawer, profileOverlay));
+if (closeProfile) closeProfile.addEventListener("click", closeDrawers);
+if (profileOverlay) profileOverlay.addEventListener("click", closeDrawers);
 
 // Initial Load
 loadProducts();
+updateCartUI();
