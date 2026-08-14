@@ -2,13 +2,15 @@
 
 let cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
 
-// Helper to fix image paths when inside the /pages/ folder
-function getFixedImagePath(imgPath) {
+function formatImagePath(imgPath) {
   if (!imgPath) return "";
-  if (imgPath.startsWith("http") || imgPath.startsWith("../")) {
-    return imgPath;
+  if (imgPath.startsWith("http") || imgPath.startsWith("data:")) return imgPath;
+  
+  let cleanPath = imgPath.replace(/^(\.\.\/|\/)+/, '');
+  if (window.location.pathname.includes('/pages/')) {
+    return "../" + cleanPath;
   }
-  return "../" + imgPath;
+  return cleanPath;
 }
 
 async function loadCategoryProducts() {
@@ -29,7 +31,6 @@ async function loadCategoryProducts() {
   }
 
   try {
-    // Fetch directly from Express API
     const response = await fetch('/api/products');
     const products = await response.json();
 
@@ -49,8 +50,8 @@ async function loadCategoryProducts() {
       card.className = "product-card";
 
       let imgList = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
-      const primaryImg = imgList[0] ? getFixedImagePath(imgList[0]) : "";
-      const hoverImg = imgList.length > 1 ? getFixedImagePath(imgList[1]) : primaryImg;
+      const primaryImg = imgList[0] ? formatImagePath(imgList[0]) : "";
+      const hoverImg = imgList.length > 1 ? formatImagePath(imgList[1]) : primaryImg;
 
       card.innerHTML = `
         <a href="product.html?id=${product._id || product.id}" style="text-decoration: none; color: inherit; display: block;">
@@ -104,9 +105,11 @@ function updateCartUI() {
     const itemEl = document.createElement("div");
     itemEl.className = "drawer-item";
 
+    const displayImg = formatImagePath(item.image);
+
     itemEl.innerHTML = `
       <div class="drawer-item-thumb" style="background: var(--bg-alt); overflow:hidden;">
-        ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
+        ${displayImg ? `<img src="${displayImg}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
       </div>
       <div class="drawer-item-info">
         <span class="name">${item.name}</span>

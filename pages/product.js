@@ -4,123 +4,182 @@ let currentProduct = null;
 let selectedSize = "S";
 let cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
 
-function getFixedImagePath(imgPath) {
+// Helper to normalize image paths for display depending on current page location
+function formatImagePath(imgPath) {
   if (!imgPath) return "";
-  if (imgPath.startsWith("http") || imgPath.startsWith("../")) {
-    return imgPath;
+  if (imgPath.startsWith("http") || imgPath.startsWith("data:")) return imgPath;
+  
+  // Strip leading ../ or /
+  let cleanPath = imgPath.replace(/^(\.\.\/|\/)+/, '');
+  
+  if (window.location.pathname.includes('/pages/')) {
+    return "../" + cleanPath;
   }
-  return "../" + imgPath;
+  return cleanPath;
+}
+
+// Helper to store clean relative paths in localStorage without ../
+function cleanStorageImagePath(imgPath) {
+  if (!imgPath) return "";
+  if (imgPath.startsWith("http") || imgPath.startsWith("data:")) return imgPath;
+  return imgPath.replace(/^(\.\.\/|\/)+/, '');
 }
 
 async function loadProductDetails() {
   const urlParams = new URLSearchParams(window.location.search);
-  const productId = urlParams.get("id");
-
-  const container = document.getElementById("productDetailContent");
-  const pageTitle = document.getElementById("pageTitle");
+  const productId = urlParams.get('id');
 
   if (!productId) {
-    container.innerHTML = `<p style="grid-column: 1/-1;">No product specified.</p>`;
+    console.error("No product ID provided in URL.");
+    showError("No product selected.");
     return;
   }
 
   try {
-    const response = await fetch('../assets/data/products.json');
-    const products = await response.json();
-
-    currentProduct = products.find(p => String(p.id) === String(productId));
-
-    if (!currentProduct) {
-      container.innerHTML = `<p style="grid-column: 1/-1;">Product not found.</p>`;
-      return;
+    const apiUrl = `${window.location.origin}/api/products/${productId}`;
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Product not found (Status: ${response.status})`);
     }
 
-    pageTitle.textContent = `${currentProduct.name} — FORME`;
+    const product = await response.json();
+    currentProduct = product;
 
+    // 1. Render Product Metadata
+    document.title = `${product.name} — FORME`;
+    
+    const titleEl = document.getElementById("productTitle");
+    const priceEl = document.getElementById("productPrice");
+    const descEl = document.getElementById("productDescription");
+    const tagEl = document.getElementById("productTag");
+
+    if (titleEl) titleEl.textContent = product.name;
+    if (priceEl) priceEl.textContent = `$${product.price}`;
+    if (descEl) descEl.textContent = product.description || "";
+    if (tagEl) {
+      if (product.tag) {
+        tagEl.textContent = product.tag;
+        tagEl.style.display = "inline-block";
+      } else {
+        tagEl.style.display = "none";
+      }
+    }
+
+    // 2. Render Main Image & Gallery Thumbnails
+    const mainImgEl = document.getElementById("mainProductImage");
+    const thumbnailContainer = document.getElementById("thumbnailContainer");
     let imgList = [];
-    if (Array.isArray(currentProduct.images)) {
-      imgList = currentProduct.images.map(img => getFixedImagePath(img));
-    } else if (currentProduct.image) {
-      imgList = [getFixedImagePath(currentProduct.image)];
+
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      imgList = product.images;
+    } else if (product.image) {
+      imgList = [product.image];
     }
 
-    const primaryImg = imgList.length > 0 ? imgList[0] : "";
-    const description = currentProduct.description || "Crafted with exceptional precision and premium materials tailored for the modern gentleman. Designed for timeless elegance and structural ease.";
-    const sizes = Array.isArray(currentProduct.sizes) && currentProduct.sizes.length > 0 
-      ? currentProduct.sizes 
-      : ["S", "M", "L", "XL"];
+    // Set primary main image
+    if (mainImgEl && imgList.length > 0) {
+      mainImgEl.src = formatImagePath(imgList[0]);
+      mainImgEl.alt = product.name;
+    }
 
-    selectedSize = sizes[0];
+    // Render thumbnail row if there are images
+    if (thumbnailContainer) {
+      thumbnailContainer.innerHTML = ""; // Clear existing
 
-    container.innerHTML = `
-      <!-- Gallery Column -->
-      <div class="detail-gallery">
-        <div class="detail-main-img" id="mainImageContainer">
-          <img src="${primaryImg}" alt="${currentProduct.name}" id="expandedImg">
-        </div>
-        ${imgList.length > 1 ? `
-          <div class="detail-thumbnails">
-            ${imgList.map((img, index) => `
-              <button class="detail-thumb-btn" onclick="changeMainImage('${img}')">
-                <img src="${img}" alt="Thumbnail ${index + 1}">
-              </button>
-            `).join('')}
-          </div>
-        ` : ''}
-      </div>
+      if (imgList.length > 1) {
+        imgList.forEach((imgPath, index) => {
+          const formattedSrc = formatImagePath(imgPath);
+          const thumbBtn = document.createElement("button");
+          thumbBtn.className = "detail-thumb-btn" + (index === 0 ? " active" : "");
+          thumbBtn.innerHTML = `<img src="${formattedSrc}" alt="${product.name} photo ${index + 1}">`;
 
-      <!-- Info Column -->
-      <div class="detail-info">
-        ${currentProduct.tag ? `<span class="product-tag" style="display:inline-block; margin-bottom:12px;">${currentProduct.tag}</span>` : ""}
-        <h1>${currentProduct.name}</h1>
-        <p class="detail-price">$${currentProduct.price}</p>
-        <p class="detail-desc">${description}</p>
+          thumbBtn.addEventListener("click", () => {
+            if (mainImgEl) mainImgEl.src = formattedSrc;
+            document.querySelectorAll(".detail-thumb-btn").forEach(btn => btn.classList.remove("active"));
+            thumbBtn.classList.add("active");
+          });
 
-        <div style="margin-bottom: 20px;">
-          <span style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display:block; margin-bottom: 8px; color: var(--ink-soft);">Select Size</span>
-          <div class="size-options">
-            ${sizes.map((size, index) => `
-              <button class="size-btn ${index === 0 ? 'active' : ''}" onclick="selectSize('${size}', this)">${size}</button>
-            `).join('')}
-          </div>
-        </div>
+          thumbnailContainer.appendChild(thumbBtn);
+        });
+      }
+    }
 
-        <button class="btn btn-primary btn-full" onclick="addCurrentToCart()">Add to Bag</button>
-      </div>
-    `;
+    // 3. Render Sizes & Stock Options
+    const sizeContainer = document.getElementById("sizeOptionsContainer");
+    if (sizeContainer) {
+      sizeContainer.innerHTML = "";
 
-    updateCartUI();
+      let sizesToRender = [];
+      if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+        sizesToRender = product.inventory;
+      } else if (Array.isArray(product.sizes)) {
+        sizesToRender = product.sizes.map(s => ({ size: s, stock: 10 }));
+      }
+
+      if (sizesToRender.length > 0) {
+        selectedSize = sizesToRender[0].size || "S";
+
+        sizesToRender.forEach((item, index) => {
+          const btn = document.createElement("button");
+          btn.className = "size-btn" + (index === 0 ? " active" : "");
+          btn.textContent = item.size;
+          
+          if (item.stock <= 0) {
+            btn.disabled = true;
+            btn.classList.add("out-of-stock");
+            btn.title = "Out of stock";
+          }
+
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            selectedSize = item.size;
+          });
+
+          sizeContainer.appendChild(btn);
+        });
+      }
+    }
 
   } catch (error) {
     console.error("Error loading product details:", error);
-    container.innerHTML = `<p style="color: red;">Failed to load product details.</p>`;
+    showError("Could not load product details. Please make sure server is running.");
   }
 }
 
-window.changeMainImage = function(imgSrc) {
-  const expandedImg = document.getElementById("expandedImg");
-  if (expandedImg) {
-    expandedImg.src = imgSrc;
+function showError(message) {
+  const container = document.querySelector(".product-detail-container") || document.querySelector("main") || document.body;
+  if (container) {
+    container.innerHTML = `
+      <div style="text-align:center; margin:80px auto; max-width:500px; padding:20px;">
+        <h2 style="font-family:var(--font-display, serif); margin-bottom:12px;">Product Not Found</h2>
+        <p style="color:gray; font-size:14px; margin-bottom:20px;">${message}</p>
+        <a href="../index.html" class="btn btn-primary" style="text-decoration:none; display:inline-block; padding:10px 20px;">Back to Shop</a>
+      </div>
+    `;
   }
-};
+}
 
-window.selectSize = function(size, btn) {
-  selectedSize = size;
-  document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-};
+document.addEventListener("DOMContentLoaded", loadProductDetails);
+
+// ===================== CART ACTIONS =====================
 
 window.addCurrentToCart = function() {
-  if (!currentProduct) return;
+  if (!currentProduct) {
+    alert("Product is still loading...");
+    return;
+  }
 
-  const cartItemId = `${currentProduct.id}-${selectedSize}`;
+  const productId = currentProduct._id || currentProduct.id;
+  const cartItemId = `${productId}-${selectedSize}`;
   const existing = cart.find(item => item.cartId === cartItemId);
 
   let thumbImg = "";
   if (Array.isArray(currentProduct.images) && currentProduct.images.length > 0) {
-    thumbImg = getFixedImagePath(currentProduct.images[0]);
+    thumbImg = cleanStorageImagePath(currentProduct.images[0]);
   } else if (currentProduct.image) {
-    thumbImg = getFixedImagePath(currentProduct.image);
+    thumbImg = cleanStorageImagePath(currentProduct.image);
   }
 
   if (existing) {
@@ -128,7 +187,7 @@ window.addCurrentToCart = function() {
   } else {
     cart.push({
       cartId: cartItemId,
-      id: currentProduct.id,
+      id: productId,
       name: currentProduct.name,
       price: currentProduct.price,
       size: selectedSize,
@@ -139,7 +198,9 @@ window.addCurrentToCart = function() {
 
   localStorage.setItem("forme_cart", JSON.stringify(cart));
   updateCartUI();
-  openDrawer(basketDrawer);
+  
+  const basketDrawer = document.getElementById("basketDrawer");
+  if (basketDrawer) openDrawer(basketDrawer);
 };
 
 window.removeFromCart = function(cartId) {
@@ -172,15 +233,17 @@ function updateCartUI() {
     const itemEl = document.createElement("div");
     itemEl.className = "drawer-item";
 
+    const displayImg = formatImagePath(item.image);
+
     itemEl.innerHTML = `
-      <div class="drawer-item-thumb" style="background: var(--bg-alt); overflow:hidden;">
-        ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
+      <div class="drawer-item-thumb" style="background: var(--bg-alt, #f5f5f5); overflow:hidden; width:50px; height:60px;">
+        ${displayImg ? `<img src="${displayImg}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
       </div>
-      <div class="drawer-item-info">
-        <span class="name">${item.name}</span>
-        <span class="price">Size: ${item.size} | Qty: ${item.qty}</span>
-        <span class="price" style="font-weight:600; color:var(--ink);">$${item.price * item.qty}</span>
-        <button class="drawer-item-remove" onclick="removeFromCart('${item.cartId}')">Remove</button>
+      <div class="drawer-item-info" style="flex:1; padding-left:10px;">
+        <span class="name" style="display:block; font-weight:500;">${item.name}</span>
+        <span class="price" style="font-size:12px; color:gray;">Size: ${item.size} | Qty: ${item.qty}</span>
+        <span class="price" style="display:block; font-weight:600; color:var(--ink, #000);">$${item.price * item.qty}</span>
+        <button class="drawer-item-remove" onclick="removeFromCart('${item.cartId}')" style="background:none; border:none; color:red; cursor:pointer; font-size:11px; padding:0;">Remove</button>
       </div>
     `;
     drawerItems.appendChild(itemEl);
@@ -216,4 +279,11 @@ if (closeBasket) closeBasket.addEventListener("click", closeDrawers);
 if (closeProfile) closeProfile.addEventListener("click", closeDrawers);
 if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
 
-loadProductDetails();
+// Sync basket when navigating pages
+window.addEventListener("pageshow", () => {
+  cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
+  updateCartUI();
+});
+
+// Initial execution on script load
+updateCartUI();

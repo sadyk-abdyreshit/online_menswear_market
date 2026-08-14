@@ -37,7 +37,35 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // ===================== API ROUTES =====================
+    app.get('/api/products/search', async (req, res) => {
+    try {
+        const query = (req.query.q || '').trim().toLowerCase();
 
+        if (!query) {
+        const all = await Product.find().sort({ createdAt: -1 });
+        return res.json(all);
+        }
+
+        // Build flexible fuzzy regex pattern (e.g., "shrt" matches "shirt")
+        const fuzzyPattern = query.split('').join('.*?');
+        const regex = new RegExp(fuzzyPattern, 'i');
+
+        const results = await Product.find({
+        $or: [
+            { name: { $regex: regex } },
+            { category: { $regex: regex } },
+            { tag: { $regex: regex } },
+            { description: { $regex: regex } }
+        ]
+        });
+
+        res.json(results);
+    } catch (error) {
+        console.error("Search API Error:", error);
+        res.status(500).json({ error: 'Search request failed.' });
+    }
+    });
+    
 // 1. GET ALL PRODUCTS FROM MONGODB
 app.get('/api/products', async (req, res) => {
     try {
@@ -47,6 +75,20 @@ app.get('/api/products', async (req, res) => {
         console.error("Error fetching products:", error);
         res.status(500).json({ error: 'Failed to fetch products from database.' });
     }
+});
+
+// GET SINGLE PRODUCT BY MONGODB _ID
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json(product);
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(400).json({ error: 'Invalid product ID format' });
+  }
 });
 
 // 2. CREATE NEW PRODUCT IN MONGODB
@@ -122,6 +164,41 @@ app.delete('/api/products/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete product.' });
     }
 });
+
+        // PATCH: UPDATE STOCK COUNT FOR A SPECIFIC SIZE
+        app.patch('/api/products/:id/stock', async (req, res) => {
+        try {
+            const { size, stock } = req.body;
+            const product = await Product.findById(req.params.id);
+
+            if (!product) {
+            return res.status(404).json({ error: 'Product not found.' });
+            }
+
+            // Safety fallback: Ensure product.inventory exists as an array
+            if (!Array.isArray(product.inventory)) {
+            product.inventory = [];
+            }
+
+            const item = product.inventory.find(i => i.size === size);
+            if (item) {
+            item.stock = Math.max(0, Number(stock));
+            } else {
+            product.inventory.push({ size, stock: Math.max(0, Number(stock)) });
+            }
+
+            // Explicitly notify Mongoose of array modifications
+            product.markModified('inventory');
+
+            await product.save();
+            res.json({ success: true, message: 'Stock updated successfully.', product });
+        } catch (error) {
+            console.error("Stock update error:", error);
+            res.status(500).json({ error: 'Failed to update stock.' });
+        }
+        });
+
+    // SEARCH PRODUCTS WITH TYPO & PARTIAL MATCH TOLERANCE
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -169,32 +169,134 @@ input:focus-visible{
   background: var(--ink);
 }
 
-.search-bar{
-  max-width: var(--container);
+/* Search Pop-up Styling */
+.search-bar {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 0 32px;
-  max-height: 0;
-  overflow: hidden;
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  transition: max-height .25s ease, padding .25s ease;
 }
-.search-bar.open{
-  max-height: 70px;
-  padding: 0 32px 16px;
+
+/* Floating Dropdown Results Box */
+.search-results-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  padding: 8px 0;
 }
-.search-bar input{
-  flex:1;
+
+.search-results-popup.hidden {
+  display: none !important;
+}
+/* Compact Result Item Row */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background-color: #f8fafc;
+}
+
+/* Fixed Small Thumbnail */
+.search-result-thumb {
+  width: 50px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.search-result-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.search-result-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.search-result-meta {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: capitalize;
+}
+
+.search-result-price {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.search-no-results {
+  padding: 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Hide by default */
+.search-bar.hidden {
+  display: none !important;
+}
+
+/* Input Wrapper & Close Button Styling */
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  padding: 10px 40px 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input-wrapper input:focus {
+  border-color: #1e293b;
+}
+
+.close-search {
+  position: absolute;
+  right: 10px;
+  background: none;
   border: none;
-  border-bottom: 1px solid var(--ink);
-  background: transparent;
-  padding: 8px 2px;
-  font-size: 15px;
-  font-family: var(--font-body);
-  color: var(--ink);
+  font-size: 16px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
 }
-.search-bar input:focus{ outline:none; }
+
+.close-search:hover {
+  color: #0f172a;
+}
 
 /* ===================== HERO ===================== */
 .hero{

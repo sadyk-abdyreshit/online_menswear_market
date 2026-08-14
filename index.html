@@ -41,10 +41,15 @@
     </div>
   </div>
 
-  <div class="search-bar" id="searchBar">
-    <input type="text" placeholder="Search products…" id="searchInput">
-    <button class="icon-btn" id="closeSearch" aria-label="Close search">✕</button>
+<div class="search-bar hidden" id="searchBar">
+  <div class="search-input-wrapper">
+    <input type="text" id="searchInput" placeholder="Search catalog (e.g. Oxford, Coat, Blazer)..." autocomplete="off">
+    <button class="close-search" id="closeSearch">✕</button>
   </div>
+  
+  <!-- Floating Compact Results Popup -->
+  <div id="searchResultsPopup" class="search-results-popup hidden"></div>
+</div>
 </header>
 
 <!-- ============ HERO ============ -->

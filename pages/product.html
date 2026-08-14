@@ -128,9 +128,41 @@
     <a href="javascript:history.back()" class="btn btn-ghost" style="font-size: 12px; padding: 6px 14px;">← Back</a>
   </div>
 
-  <div class="product-detail-container" id="productDetailContent">
-    <!-- Populated dynamically by product.js -->
+<div class="product-detail-container" id="productDetailContent">
+  
+  <!-- LEFT COLUMN: Images -->
+<div class="product-gallery">
+  <!-- Main Display Image -->
+  <div class="main-image-wrapper">
+    <img id="mainProductImage" src="" alt="Product Photo" class="main-display-img">
   </div>
+
+  <!-- Thumbnails Row (Displays Image 1, Image 2, etc.) -->
+  <div id="thumbnailContainer" class="thumbnail-container"></div>
+</div>
+
+  <!-- RIGHT COLUMN: Product Info -->
+  <div class="detail-info">
+    <span id="productTag" class="product-tag" style="display:none; margin-bottom:10px; background:var(--bg-alt); padding:4px 8px; border-radius:4px; font-size:12px;"></span>
+    
+    <h1 id="productTitle">Loading...</h1>
+    <div class="detail-price" id="productPrice"></div>
+    
+    <p class="detail-desc" id="productDescription"></p>
+
+    <!-- Sizes -->
+    <div style="margin-bottom: 12px; font-weight: 500; font-size: 14px;">Select Size</div>
+    <div class="size-options" id="sizeOptionsContainer">
+      <!-- Sizes will be injected here by product.js -->
+    </div>
+
+    <!-- Add to Cart Button -->
+    <button class="btn btn-primary btn-full" onclick="addCurrentToCart()" style="margin-top: 20px;">
+      Add to Bag
+    </button>
+  </div>
+
+</div>
 </main>
 
 <!-- FOOTER -->
