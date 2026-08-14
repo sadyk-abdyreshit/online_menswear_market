@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <!-- Optional dark background for high contrast; remove if transparent background is preferred -->
+  <rect width="100" height="100" rx="20" fill="#0D0D0D"/>
+  
+  <!-- Forme "F" Monogram -->
+  <g fill="#FFFFFF">
+    <!-- Top Bar -->
+    <polygon points="25,25 75,25 65,40 25,40" />
+    <!-- Middle Bar & Stem -->
+    <polygon points="35,42 65,42 55,57 40,57 40,75 25,75" />
+  </g>
+</svg>
