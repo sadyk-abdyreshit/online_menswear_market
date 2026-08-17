@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const User = require('../models/User');
 
-// JWT Secret (In production, put this in your .env file)
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_key_123';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not configured');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 router.post('/register', async (req, res) => {
   try {
@@ -26,7 +28,27 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+  {
+    userId: user._id.toString(),
+    role: user.role
+  },
+  JWT_SECRET,
+  {
+    expiresIn: '7d'
+  }
+);
+
+res.cookie('forme_token', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
+res.status(201).json({
+  message: 'Account created successfully'
+});
 
     res.status(201).json({ message: 'Account created successfully', token });
   } catch (error) {
@@ -56,9 +78,28 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+  {
+    userId: user._id.toString(),
+    role: user.role
+  },
+  JWT_SECRET,
+  {
+    expiresIn: '7d'
+  }
+);
 
-    res.status(200).json({ message: 'Logged in successfully', token });
+    res.cookie('forme_token', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
+res.json({
+  message: 'Login successful'
+});
+
   } catch (error) {
     res.status(500).json({ message: 'Server error during login' });
   }

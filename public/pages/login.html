@@ -87,11 +87,10 @@
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('forme_token', data.token);
-        window.location.href = '/index.html'; // Redirect to homepage
+        window.location.href = '/index.html';
       } else {
         alert(`Error: ${data.message}`);
-      }
+    }
     } catch (error) {
       console.error('Login failed:', error);
     }

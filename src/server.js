@@ -3,6 +3,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const mongoose = require('mongoose');
 const fs = require('fs');
@@ -10,7 +11,6 @@ const multer = require('multer');
 
 // Require model from root /models directory
 const Product = require('./models/Product');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -19,6 +19,7 @@ const publicPath = path.join(__dirname, '../public');
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
+app.use(cookieParser());
 
 // Serve static frontend files (index.html, styles.css, script.js, assets, etc.)
 app.use(express.static(publicPath));

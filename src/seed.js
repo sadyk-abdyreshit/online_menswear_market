@@ -14,7 +14,7 @@ async function seedDatabase() {
     console.log('Cleared existing database products.');
 
     // Read products.json
-    const rawData = fs.readFileSync(path.join(__dirname, 'assets', 'data', 'products.json'), 'utf8');
+    const rawData = fs.readFileSync(path.join(__dirname, '../public/assets/data/products.json'), 'utf8');
     const jsonProducts = JSON.parse(rawData);
 
     // Format products for MongoDB schema
