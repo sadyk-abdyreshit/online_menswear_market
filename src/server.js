@@ -18,8 +18,9 @@ const PORT = process.env.PORT || 3000;
 const publicPath = path.join(__dirname, '../public');
 
 app.use(express.json());
-app.use('/api/auth', authRoutes);
 app.use(cookieParser());
+
+app.use('/api/auth', authRoutes);
 
 // Serve static frontend files (index.html, styles.css, script.js, assets, etc.)
 app.use(express.static(publicPath));
@@ -234,6 +235,10 @@ app.get(['/login', '/login.html'], (req, res) => {
 
 app.get(['/register', '/register.html'], (req, res) => {
     res.sendFile(path.join(publicPath, 'pages', 'register.html'));
+});
+
+app.get(['/profile', '/profile.html'], (req, res) => {
+    res.sendFile(path.join(publicPath, 'pages', 'profile.html'));
 });
 
 // Order Submission Endpoint

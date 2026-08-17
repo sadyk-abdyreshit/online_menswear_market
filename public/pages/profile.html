@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Profile — FORME</title>
+
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <div class="header-row">
+
+            <a href="/" class="logo">
+                FORME
+            </a>
+
+            <a href="/" class="header-back">
+                Continue Shopping
+            </a>
+
+        </div>
+    </header>
+
+
+    <main class="profile-page">
+
+        <section class="profile-card">
+
+            <div id="profileContent">
+                <p>Loading profile...</p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="/js/auth.js"></script>
+
+    <script>
+
+        async function loadProfile() {
+
+            const profileContent =
+                document.getElementById('profileContent');
+
+            const user = await Auth.getCurrentUser();
+
+            /*
+             * User is not authenticated.
+             * Send them to the login page.
+             */
+            if (!user) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const initials = Auth.getInitials(user.name);
+
+            const accountType =
+                user.role === 'admin'
+                    ? 'Administrator'
+                    : 'Customer';
+
+            profileContent.innerHTML = `
+
+                <div class="profile-avatar profile-avatar-large">
+                    ${initials}
+                </div>
+
+                <h1>${user.name}</h1>
+
+                <p class="profile-email">
+                    ${user.email}
+                </p>
+
+                <div class="profile-details">
+
+                    <div class="profile-detail">
+                        <span>Name</span>
+                        <strong>${user.name}</strong>
+                    </div>
+
+                    <div class="profile-detail">
+                        <span>Email</span>
+                        <strong>${user.email}</strong>
+                    </div>
+
+                    <div class="profile-detail">
+                        <span>Account type</span>
+                        <strong>${accountType}</strong>
+                    </div>
+
+                </div>
+
+                <div class="profile-actions">
+
+                    <a
+                        href="/"
+                        class="btn btn-primary"
+                    >
+                        Continue Shopping
+                    </a>
+
+                    <button
+                        type="button"
+                        class="btn btn-ghost"
+                        id="logoutBtn"
+                    >
+                        Sign Out
+                    </button>
+
+                </div>
+            `;
+
+            const logoutBtn =
+                document.getElementById('logoutBtn');
+
+            logoutBtn.addEventListener('click', async () => {
+                await Auth.logout();
+            });
+        }
+
+
+        loadProfile();
+
+    </script>
+
+</body>
+
+</html>

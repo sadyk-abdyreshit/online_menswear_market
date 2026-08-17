@@ -225,6 +225,34 @@ window.addEventListener("pageshow", () => {
   updateCartUI();
 });
 
+// ===================== SEARCH BAR OPEN / CLOSE =====================
+
+if (searchToggle && searchBar) {
+    searchToggle.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        searchBar.classList.remove("hidden");
+
+        if (searchInput) {
+            searchInput.focus();
+        }
+    });
+}
+
+if (closeSearch && searchBar) {
+    closeSearch.addEventListener("click", () => {
+        searchBar.classList.add("hidden");
+
+        if (searchPopup) {
+            searchPopup.classList.add("hidden");
+        }
+
+        if (searchInput) {
+            searchInput.value = "";
+        }
+    });
+}
+
 // ===================== UI INTERACTION HANDLERS =====================
 function toggleDrawer(drawer) {
   // Check if the clicked drawer is already open
@@ -266,6 +294,85 @@ if (profileBtn) {
 if (closeBasket) closeBasket.addEventListener("click", closeDrawers);
 if (closeProfile) closeProfile.addEventListener("click", closeDrawers);
 if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
+
+// ===================== AUTHENTICATION UI =====================
+
+async function updateProfileUI() {
+  const profileBtn = document.getElementById('profileBtn');
+  const profileBody = document.getElementById('profileBody');
+
+  if (!profileBtn || !profileBody) return;
+
+  const user = await Auth.getCurrentUser();
+
+  if (!user) {
+    profileBody.innerHTML = `
+      <p>Sign in to view orders, saved items, and delivery addresses.</p>
+
+      <a href="/login" class="btn btn-primary btn-full">
+        Sign In
+      </a>
+
+      <a href="/register" class="btn btn-ghost btn-full">
+        Create Account
+      </a>
+    `;
+
+    return;
+  }
+
+  const initials = Auth.getInitials(user.name);
+
+  profileBtn.innerHTML = `
+    <span class="profile-avatar">
+      ${initials}
+    </span>
+  `;
+
+  profileBtn.setAttribute(
+    'aria-label',
+    `Profile of ${user.name}`
+  );
+
+  profileBody.innerHTML = `
+    <div class="profile-user">
+      <div class="profile-avatar profile-avatar-large">
+        ${initials}
+      </div>
+
+      <div>
+        <strong>${user.name}</strong>
+        <span>${user.email}</span>
+      </div>
+    </div>
+
+    <a href="/profile" class="btn btn-primary btn-full">
+      My Profile
+    </a>
+
+    <a href="/orders" class="btn btn-ghost btn-full">
+      My Orders
+    </a>
+
+    <button
+      type="button"
+      class="btn btn-ghost btn-full"
+      id="logoutBtn"
+    >
+      Sign Out
+    </button>
+  `;
+
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      Auth.logout();
+    });
+  }
+}
+
+updateProfileUI();
 
 // Initial Load
 loadProducts();

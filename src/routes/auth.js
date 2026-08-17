@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { authenticateToken } = require('../middleware/auth');
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET is not configured');
@@ -50,13 +51,12 @@ res.status(201).json({
   message: 'Account created successfully'
 });
 
-    res.status(201).json({ message: 'Account created successfully', token });
   } catch (error) {
-    // 🔍 THIS WILL PRINT THE EXACT ERROR IN YOUR TERMINAL
-    console.error('REGISTRATION ERROR:', error);
-    
-    // Send the actual error message to the frontend alert for debugging
-    res.status(500).json({ message: error.message || 'Server error during registration' });
+  // 🔍 THIS WILL PRINT THE EXACT ERROR IN YOUR TERMINAL
+  console.error('REGISTRATION ERROR:', error);
+  
+  // Send the actual error message to the frontend alert for debugging
+  res.status(500).json({ message: error.message || 'Server error during registration' });
   }
 });
 
@@ -103,6 +103,46 @@ res.json({
   } catch (error) {
     res.status(500).json({ message: 'Server error during login' });
   }
+});
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId)
+      .select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Auth check error:', error);
+
+    res.status(500).json({
+      message: 'Failed to verify authentication'
+    });
+  }
+});
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('forme_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    });
+
+    res.json({
+        message: 'Logged out successfully'
+    });
 });
 
 module.exports = router;
