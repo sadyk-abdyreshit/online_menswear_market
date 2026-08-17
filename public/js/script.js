@@ -12,9 +12,6 @@ async function loadProducts() {
   }
 }
 
-// ===================== STATE (SYNCED WITH LOCALSTORAGE) =====================
-let cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
-
 // ===================== DOM ELEMENTS =====================
 const productGrid = document.getElementById("productGrid");
 const filterRow = document.getElementById("filterRow");
@@ -59,7 +56,6 @@ if (searchInput && searchPopup) {
       try {
         const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
         const results = await response.json();
-        
         renderSearchPopup(results);
       } catch (error) {
         console.error("Error executing live search:", error);
@@ -67,17 +63,14 @@ if (searchInput && searchPopup) {
     }, 250);
   });
 
-  // Render popup items
-// Render compact popup items
-  function renderSearchPopup(products) {
-    if (!products || products.length === 0) {
+  function renderSearchPopup(productsList) {
+    if (!productsList || productsList.length === 0) {
       searchPopup.innerHTML = `<div class="search-no-results">No products found matching your search.</div>`;
       searchPopup.classList.remove("hidden");
       return;
     }
 
-    searchPopup.innerHTML = products.map(product => {
-      // Extract thumbnail image correctly
+    searchPopup.innerHTML = productsList.map(product => {
       let mainImg = 'https://via.placeholder.com/60';
       if (Array.isArray(product.images) && product.images.length > 0) {
         mainImg = product.images[0];
@@ -102,7 +95,6 @@ if (searchInput && searchPopup) {
     searchPopup.classList.remove("hidden");
   }
 
-  // Hide search popup when clicking outside
   document.addEventListener("click", (e) => {
     if (searchInput && searchPopup && !searchInput.contains(e.target) && !searchPopup.contains(e.target)) {
       searchPopup.classList.add("hidden");
@@ -137,9 +129,10 @@ function renderProducts(filter = "all") {
 
     const primaryImg = imgList.length > 0 ? imgList[0] : "";
     const hoverImg = imgList.length > 1 ? imgList[1] : primaryImg;
+    const prodId = product._id || product.id;
 
     card.innerHTML = `
-      <a href="pages/product.html?id=${product._id || product.id}" style="text-decoration: none; color: inherit; display: block;">
+      <a href="pages/product.html?id=${prodId}" style="text-decoration: none; color: inherit; display: block;">
         <div class="product-image">
           ${product.tag ? `<span class="product-tag">${product.tag}</span>` : ""}
           ${primaryImg ? `<img src="${primaryImg}" alt="${product.name}" class="main-img" loading="lazy">` : ""}
@@ -148,7 +141,7 @@ function renderProducts(filter = "all") {
         <h3 class="product-name">${product.name}</h3>
         <p class="product-price">$${product.price}</p>
       </a>
-      <button class="add-btn" onclick="addToCart('${product._id || product.id}')">Add to Bag</button>
+      <button class="add-btn" onclick="addToCart('${prodId}')">Add to Bag</button>
     `;
     productGrid.appendChild(card);
   });
@@ -166,64 +159,46 @@ if (filterRow) {
   });
 }
 
-// ===================== CART LOGIC & STORAGE SYNCRONIZATION =====================
+// ===================== UNIFIED CART LOGIC =====================
 window.addToCart = function(id, defaultSize = "M") {
+  // Look up full product object before passing to Cart module
   const product = products.find(p => p._id === id || p.id === id);
   if (!product) return;
 
-  const productId = product._id || product.id;
-  const cartItemId = `${productId}-${defaultSize}`;
-  const existing = cart.find(item => item.cartId === cartItemId);
-  
-  let thumbImg = "";
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    thumbImg = product.images[0];
-  } else if (product.image) {
-    thumbImg = product.image;
+  if (typeof Cart !== "undefined" && Cart.addItem) {
+    Cart.addItem(product, defaultSize, 1);
   }
 
-  if (existing) {
-    existing.qty += 1;
-  } else {
-    cart.push({
-      cartId: cartItemId,
-      id: productId,
-      name: product.name,
-      price: product.price,
-      size: defaultSize,
-      image: thumbImg,
-      qty: 1
-    });
-  }
-  
-  localStorage.setItem("forme_cart", JSON.stringify(cart));
   updateCartUI();
   openDrawer(basketDrawer, drawerOverlay);
 };
 
-window.removeFromCart = function(cartId) {
-  cart = cart.filter(item => item.cartId !== cartId && item.id !== cartId);
-  localStorage.setItem("forme_cart", JSON.stringify(cart));
+window.removeFromCart = function(id, size) {
+  if (typeof Cart !== "undefined" && Cart.removeItem) {
+    Cart.removeItem(id, size);
+  }
   updateCartUI();
 };
 
 function updateCartUI() {
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  if (basketCount) basketCount.textContent = totalItems;
+  if (typeof Cart !== "undefined" && Cart.updateBadge) {
+    Cart.updateBadge();
+  }
   
   if (!drawerItems || !drawerTotal) return;
 
-  if (cart.length === 0) {
+  const items = (typeof Cart !== "undefined" && Cart.getItems) ? Cart.getItems() : [];
+
+  if (items.length === 0) {
     drawerItems.innerHTML = `<p class="drawer-empty" id="drawerEmpty">Your basket is empty.</p>`;
     drawerTotal.textContent = "$0";
     return;
   }
   
   drawerItems.innerHTML = "";
-  let subtotal = 0;
   
-  cart.forEach(item => {
-    subtotal += item.price * item.qty;
+  items.forEach(item => {
+    const qty = item.quantity || 1;
     const itemEl = document.createElement("div");
     itemEl.className = "drawer-item";
 
@@ -233,60 +208,64 @@ function updateCartUI() {
       </div>
       <div class="drawer-item-info">
         <span class="name">${item.name}</span>
-        <span class="price">${item.size ? `Size: ${item.size} | ` : ""}Qty: ${item.qty}</span>
-        <span class="price" style="font-weight:600; color:var(--ink);">$${item.price * item.qty}</span>
-        <button class="drawer-item-remove" onclick="removeFromCart('${item.cartId || item.id}')">Remove</button>
+        <span class="price">${item.size ? `Size: ${item.size} | ` : ""}Qty: ${qty}</span>
+        <span class="price" style="font-weight:600; color:var(--ink);">$${item.price * qty}</span>
+        <button class="drawer-item-remove" onclick="removeFromCart('${item.id}', '${item.size}')">Remove</button>
       </div>
     `;
     drawerItems.appendChild(itemEl);
   });
   
-  drawerTotal.textContent = `$${subtotal}`;
+  if (typeof Cart !== "undefined" && Cart.getTotal) {
+    drawerTotal.textContent = `$${Cart.getTotal()}`;
+  }
 }
 
 window.addEventListener("pageshow", () => {
-  cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
   updateCartUI();
 });
 
 // ===================== UI INTERACTION HANDLERS =====================
-function openDrawer(drawer, overlay) {
-  if (drawer) drawer.classList.add("open");
-  if (overlay) overlay.classList.add("open");
+function toggleDrawer(drawer) {
+  // Check if the clicked drawer is already open
+  const isOpen = drawer && drawer.classList.contains("open");
+  
+  // Always close everything first to reset the state
+  closeDrawers();
+  
+  // If the drawer was NOT open, open it now. 
+  // (If it was open, it just stays closed thanks to the line above).
+  if (!isOpen && drawer) {
+    drawer.classList.add("open");
+    if (drawerOverlay) drawerOverlay.classList.add("open");
+  }
 }
 
 function closeDrawers() {
   if (basketDrawer) basketDrawer.classList.remove("open");
   if (profileDrawer) profileDrawer.classList.remove("open");
   if (drawerOverlay) drawerOverlay.classList.remove("open");
-  if (profileOverlay) profileOverlay.classList.remove("open");
 }
 
-// Search Bar Open / Close Handlers
-if (searchToggle && searchBar) {
-  searchToggle.addEventListener("click", (e) => {
+// Event Listeners for Buttons
+if (basketBtn) {
+  basketBtn.addEventListener("click", (e) => {
+    e.preventDefault(); // Prevents page jump if it's an <a> tag
+    toggleDrawer(basketDrawer);
+  });
+}
+
+if (profileBtn) {
+  profileBtn.addEventListener("click", (e) => {
     e.preventDefault();
-    searchBar.classList.remove("hidden");
-    if (searchInput) searchInput.focus();
+    toggleDrawer(profileDrawer);
   });
 }
 
-if (closeSearch && searchBar) {
-  closeSearch.addEventListener("click", () => {
-    searchBar.classList.add("hidden");
-    if (searchPopup) searchPopup.classList.add("hidden");
-    if (searchInput) searchInput.value = "";
-  });
-}
-
-// Drawers
-if (basketBtn) basketBtn.addEventListener("click", () => openDrawer(basketDrawer, drawerOverlay));
+// Event Listeners for Closing
 if (closeBasket) closeBasket.addEventListener("click", closeDrawers);
-if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
-
-if (profileBtn) profileBtn.addEventListener("click", () => openDrawer(profileDrawer, profileOverlay));
 if (closeProfile) closeProfile.addEventListener("click", closeDrawers);
-if (profileOverlay) profileOverlay.addEventListener("click", closeDrawers);
+if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
 
 // Initial Load
 loadProducts();

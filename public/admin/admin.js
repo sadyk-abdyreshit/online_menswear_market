@@ -60,6 +60,11 @@ function renderInventory() {
       imgPath = product.image;
     }
 
+    // FIX: Ensure root-relative path starting with '/'
+    if (imgPath && !imgPath.startsWith('/') && !imgPath.startsWith('http')) {
+      imgPath = '/' + imgPath;
+    }
+
     const productId = product._id || product.id;
 
     // 2. Build Interactive Size & Stock Pills

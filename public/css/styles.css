@@ -602,9 +602,9 @@ input:focus-visible{
 .basket-drawer,
 .profile-drawer{
   position: fixed;
-  top: 0;
+  top: 65px;
   right: 0;
-  height: 100%;
+  height: calc(100vh - 70px);
   width: min(400px, 90vw);
   background: var(--bg);
   border-left: 1px solid var(--line);

@@ -1,6 +1,5 @@
 // ===================== DYNAMIC CATEGORY PAGE LOGIC =====================
 
-let cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
 
 function formatImagePath(imgPath) {
   if (!imgPath) return "";
@@ -122,6 +121,58 @@ function updateCartUI() {
   });
 
   drawerTotal.textContent = `$${subtotal}`;
+}// ===================== CART & DRAWER LOGIC =====================
+window.removeFromCart = function(id, size) {
+  if (typeof Cart !== "undefined" && Cart.removeItem) {
+    Cart.removeItem(id, size);
+  }
+  updateCartUI();
+};
+
+function updateCartUI() {
+  if (typeof Cart !== "undefined" && Cart.updateBadge) {
+    Cart.updateBadge();
+  }
+
+  const drawerItems = document.getElementById("drawerItems");
+  const drawerTotal = document.getElementById("drawerTotal");
+
+  if (!drawerItems || !drawerTotal) return;
+
+  const items = (typeof Cart !== "undefined" && Cart.getItems) ? Cart.getItems() : [];
+
+  if (items.length === 0) {
+    drawerItems.innerHTML = `<p class="drawer-empty" id="drawerEmpty">Your basket is empty.</p>`;
+    drawerTotal.textContent = "$0";
+    return;
+  }
+
+  drawerItems.innerHTML = "";
+
+  items.forEach(item => {
+    const qty = item.quantity || 1;
+    const itemEl = document.createElement("div");
+    itemEl.className = "drawer-item";
+
+    const displayImg = formatImagePath(item.image);
+
+    itemEl.innerHTML = `
+      <div class="drawer-item-thumb" style="background: var(--bg-alt); overflow:hidden;">
+        ${displayImg ? `<img src="${displayImg}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover;">` : ""}
+      </div>
+      <div class="drawer-item-info">
+        <span class="name">${item.name}</span>
+        <span class="price">${item.size ? `Size: ${item.size} | ` : ""}Qty: ${qty}</span>
+        <span class="price" style="font-weight:600; color:var(--ink);">$${item.price * qty}</span>
+        <button class="drawer-item-remove" onclick="removeFromCart('${item.id}', '${item.size}')">Remove</button>
+      </div>
+    `;
+    drawerItems.appendChild(itemEl);
+  });
+
+  if (typeof Cart !== "undefined" && Cart.getTotal) {
+    drawerTotal.textContent = `$${Cart.getTotal()}`;
+  }
 }
 
 // ===================== DRAWERS CONTROLLER =====================
@@ -133,10 +184,19 @@ const drawerOverlay = document.getElementById("drawerOverlay");
 const closeBasket = document.getElementById("closeBasket");
 const closeProfile = document.getElementById("closeProfile");
 
-function openDrawer(drawer) {
+function toggleDrawer(drawer) {
+  // Check if the clicked drawer is already open
+  const isOpen = drawer && drawer.classList.contains("open");
+  
+  // Always close everything first to reset the state
   closeDrawers();
-  if (drawer) drawer.classList.add("open");
-  if (drawerOverlay) drawerOverlay.classList.add("open");
+  
+  // If the drawer was NOT open, open it now. 
+  // (If it was open, it just stays closed thanks to the line above).
+  if (!isOpen && drawer) {
+    drawer.classList.add("open");
+    if (drawerOverlay) drawerOverlay.classList.add("open");
+  }
 }
 
 function closeDrawers() {
@@ -145,16 +205,27 @@ function closeDrawers() {
   if (drawerOverlay) drawerOverlay.classList.remove("open");
 }
 
-if (basketBtn) basketBtn.addEventListener("click", () => openDrawer(basketDrawer));
-if (profileBtn) profileBtn.addEventListener("click", () => openDrawer(profileDrawer));
+// Event Listeners for Buttons
+if (basketBtn) {
+  basketBtn.addEventListener("click", (e) => {
+    e.preventDefault(); // Prevents page jump if it's an <a> tag
+    toggleDrawer(basketDrawer);
+  });
+}
+
+if (profileBtn) {
+  profileBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleDrawer(profileDrawer);
+  });
+}
+
+// Event Listeners for Closing
 if (closeBasket) closeBasket.addEventListener("click", closeDrawers);
 if (closeProfile) closeProfile.addEventListener("click", closeDrawers);
 if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
 
-window.addEventListener("pageshow", () => {
-  cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
-  updateCartUI();
-});
+window.addEventListener("pageshow", updateCartUI);
 
 // Initial Execution
 loadCategoryProducts();

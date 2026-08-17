@@ -2,7 +2,6 @@
 
 let currentProduct = null;
 let selectedSize = "S";
-let cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
 
 // Helper to normalize image paths for display depending on current page location
 function formatImagePath(imgPath) {
@@ -162,7 +161,6 @@ function showError(message) {
 }
 
 document.addEventListener("DOMContentLoaded", loadProductDetails);
-
 // ===================== CART ACTIONS =====================
 
 window.addCurrentToCart = function() {
@@ -171,65 +169,46 @@ window.addCurrentToCart = function() {
     return;
   }
 
-  const productId = currentProduct._id || currentProduct.id;
-  const cartItemId = `${productId}-${selectedSize}`;
-  const existing = cart.find(item => item.cartId === cartItemId);
-
-  let thumbImg = "";
-  if (Array.isArray(currentProduct.images) && currentProduct.images.length > 0) {
-    thumbImg = cleanStorageImagePath(currentProduct.images[0]);
-  } else if (currentProduct.image) {
-    thumbImg = cleanStorageImagePath(currentProduct.image);
+  // Use the global Cart object from cart.js
+  if (typeof Cart !== "undefined" && Cart.addItem) {
+    Cart.addItem(currentProduct, selectedSize, 1);
   }
 
-  if (existing) {
-    existing.qty += 1;
-  } else {
-    cart.push({
-      cartId: cartItemId,
-      id: productId,
-      name: currentProduct.name,
-      price: currentProduct.price,
-      size: selectedSize,
-      image: thumbImg,
-      qty: 1
-    });
-  }
-
-  localStorage.setItem("forme_cart", JSON.stringify(cart));
   updateCartUI();
   
   const basketDrawer = document.getElementById("basketDrawer");
   if (basketDrawer) openDrawer(basketDrawer);
 };
 
-window.removeFromCart = function(cartId) {
-  cart = cart.filter(item => item.cartId !== cartId);
-  localStorage.setItem("forme_cart", JSON.stringify(cart));
+window.removeFromCart = function(id, size) {
+  if (typeof Cart !== "undefined" && Cart.removeItem) {
+    Cart.removeItem(id, size);
+  }
   updateCartUI();
 };
 
 function updateCartUI() {
-  const basketCount = document.getElementById("basketCount");
+  if (typeof Cart !== "undefined" && Cart.updateBadge) {
+    Cart.updateBadge();
+  }
+
   const drawerItems = document.getElementById("drawerItems");
   const drawerTotal = document.getElementById("drawerTotal");
 
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  if (basketCount) basketCount.textContent = totalItems;
-
   if (!drawerItems || !drawerTotal) return;
 
-  if (cart.length === 0) {
+  const items = (typeof Cart !== "undefined" && Cart.getItems) ? Cart.getItems() : [];
+
+  if (items.length === 0) {
     drawerItems.innerHTML = `<p class="drawer-empty">Your basket is empty.</p>`;
     drawerTotal.textContent = "$0";
     return;
   }
 
   drawerItems.innerHTML = "";
-  let subtotal = 0;
 
-  cart.forEach(item => {
-    subtotal += item.price * item.qty;
+  items.forEach(item => {
+    const qty = item.quantity || 1; // Aligning with cart.js data structure
     const itemEl = document.createElement("div");
     itemEl.className = "drawer-item";
 
@@ -241,15 +220,17 @@ function updateCartUI() {
       </div>
       <div class="drawer-item-info" style="flex:1; padding-left:10px;">
         <span class="name" style="display:block; font-weight:500;">${item.name}</span>
-        <span class="price" style="font-size:12px; color:gray;">Size: ${item.size} | Qty: ${item.qty}</span>
-        <span class="price" style="display:block; font-weight:600; color:var(--ink, #000);">$${item.price * item.qty}</span>
-        <button class="drawer-item-remove" onclick="removeFromCart('${item.cartId}')" style="background:none; border:none; color:red; cursor:pointer; font-size:11px; padding:0;">Remove</button>
+        <span class="price" style="font-size:12px; color:gray;">Size: ${item.size} | Qty: ${qty}</span>
+        <span class="price" style="display:block; font-weight:600; color:var(--ink, #000);">$${item.price * qty}</span>
+        <button class="drawer-item-remove" onclick="removeFromCart('${item.id}', '${item.size}')" style="background:none; border:none; color:red; cursor:pointer; font-size:11px; padding:0;">Remove</button>
       </div>
     `;
     drawerItems.appendChild(itemEl);
   });
 
-  drawerTotal.textContent = `$${subtotal}`;
+  if (typeof Cart !== "undefined" && Cart.getTotal) {
+    drawerTotal.textContent = `$${Cart.getTotal()}`;
+  }
 }
 
 // ===================== DRAWERS CONTROLLER =====================
@@ -261,10 +242,19 @@ const drawerOverlay = document.getElementById("drawerOverlay");
 const closeBasket = document.getElementById("closeBasket");
 const closeProfile = document.getElementById("closeProfile");
 
-function openDrawer(drawer) {
+function toggleDrawer(drawer) {
+  // Check if the clicked drawer is already open
+  const isOpen = drawer && drawer.classList.contains("open");
+  
+  // Always close everything first to reset the state
   closeDrawers();
-  if (drawer) drawer.classList.add("open");
-  if (drawerOverlay) drawerOverlay.classList.add("open");
+  
+  // If the drawer was NOT open, open it now. 
+  // (If it was open, it just stays closed thanks to the line above).
+  if (!isOpen && drawer) {
+    drawer.classList.add("open");
+    if (drawerOverlay) drawerOverlay.classList.add("open");
+  }
 }
 
 function closeDrawers() {
@@ -273,17 +263,28 @@ function closeDrawers() {
   if (drawerOverlay) drawerOverlay.classList.remove("open");
 }
 
-if (basketBtn) basketBtn.addEventListener("click", () => openDrawer(basketDrawer));
-if (profileBtn) profileBtn.addEventListener("click", () => openDrawer(profileDrawer));
+// Event Listeners for Buttons
+if (basketBtn) {
+  basketBtn.addEventListener("click", (e) => {
+    e.preventDefault(); // Prevents page jump if it's an <a> tag
+    toggleDrawer(basketDrawer);
+  });
+}
+
+if (profileBtn) {
+  profileBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleDrawer(profileDrawer);
+  });
+}
+
+// Event Listeners for Closing
 if (closeBasket) closeBasket.addEventListener("click", closeDrawers);
 if (closeProfile) closeProfile.addEventListener("click", closeDrawers);
 if (drawerOverlay) drawerOverlay.addEventListener("click", closeDrawers);
 
 // Sync basket when navigating pages
-window.addEventListener("pageshow", () => {
-  cart = JSON.parse(localStorage.getItem("forme_cart")) || [];
-  updateCartUI();
-});
+window.addEventListener("pageshow", updateCartUI);
 
 // Initial execution on script load
 updateCartUI();
