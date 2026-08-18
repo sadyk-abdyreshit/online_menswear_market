@@ -102,6 +102,17 @@ async function initializeProfileUI() {
             `Profile of ${user.name}`
         );
 
+        const adminButton = user.role === 'admin'
+            ? `
+                <a
+                    href="/admin"
+                    class="btn btn-ghost btn-full"
+                >
+                    Admin Panel
+                </a>
+            `
+            : '';
+
         profileBody.innerHTML = `
             <div class="profile-user">
 
@@ -130,6 +141,8 @@ async function initializeProfileUI() {
                 My Orders
             </a>
 
+            ${adminButton}
+
             <button
                 type="button"
                 class="btn btn-ghost btn-full"
@@ -138,7 +151,6 @@ async function initializeProfileUI() {
                 Sign Out
             </button>
         `;
-
         const logoutBtn =
             document.getElementById('logoutBtn');
 

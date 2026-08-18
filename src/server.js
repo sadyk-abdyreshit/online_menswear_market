@@ -23,7 +23,20 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
 
-// Serve static frontend files (index.html, styles.css, script.js, assets, etc.)
+// ===================== PROTECTED ADMIN PAGE =====================
+
+app.get(
+    ['/admin', '/admin/', '/admin/index.html'],
+    authenticateToken,
+    requireAdmin,
+    (req, res) => {
+        res.sendFile(
+            path.join(publicPath, 'admin', 'index.html')
+        );
+    }
+);
+
+// Serve static frontend files
 app.use(express.static(publicPath));
 
 // Connect to MongoDB
@@ -224,11 +237,6 @@ app.patch(
 });
 
 // ===================== PAGE ROUTES =====================
-
-// Admin Dashboard (serving public/admin/index.html)
-app.get(['/admin', '/admin/'], (req, res) => {
-    res.sendFile(path.join(publicPath, 'admin', 'index.html'));
-});
 
 // Shop Pages
 app.get(['/category', '/category.html'], (req, res) => {

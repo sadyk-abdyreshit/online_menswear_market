@@ -334,6 +334,17 @@ async function updateProfileUI() {
     `Profile of ${user.name}`
   );
 
+  const adminButton = user.role === 'admin'
+    ? `
+        <a
+          href="/admin"
+          class="btn btn-ghost btn-full"
+        >
+          Admin Panel
+        </a>
+      `
+    : '';
+
   profileBody.innerHTML = `
     <div class="profile-user">
       <div class="profile-avatar profile-avatar-large">
@@ -353,6 +364,8 @@ async function updateProfileUI() {
     <a href="/orders" class="btn btn-ghost btn-full">
       My Orders
     </a>
+
+    ${adminButton}
 
     <button
       type="button"
