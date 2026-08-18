@@ -5,6 +5,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
+const { authenticateToken, requireAdmin } = require('./middleware/auth');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const multer = require('multer');
@@ -106,10 +107,15 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // CREATE NEW PRODUCT
-app.post('/api/products', upload.fields([
-    { name: 'image1', maxCount: 1 },
-    { name: 'image2', maxCount: 1 }
-]), async (req, res) => {
+app.post(
+    '/api/products',
+    authenticateToken,
+    requireAdmin,
+    upload.fields([
+        { name: 'image1', maxCount: 1 },
+        { name: 'image2', maxCount: 1 }
+    ]),
+    async (req, res) => {
     try {
         const { name, category, price, tag, description } = req.body;
         
@@ -163,7 +169,11 @@ app.post('/api/products', upload.fields([
 });
 
 // DELETE PRODUCT
-app.delete('/api/products/:id', async (req, res) => {
+app.delete(
+    '/api/products/:id',
+    authenticateToken,
+    requireAdmin,
+    async (req, res) => {
     try {
         const deletedProduct = await Product.findByIdAndDelete(req.params.id);
 
@@ -179,7 +189,11 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // UPDATE STOCK COUNT
-app.patch('/api/products/:id/stock', async (req, res) => {
+app.patch(
+    '/api/products/:id/stock',
+    authenticateToken,
+    requireAdmin,
+    async (req, res) => {
     try {
         const { size, stock } = req.body;
         const product = await Product.findById(req.params.id);
